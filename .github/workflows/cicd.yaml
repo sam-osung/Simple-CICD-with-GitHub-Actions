@@ -1,0 +1,47 @@
+name: Push-to-EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy Entire Repo to EC2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Fix permissions on EC2 BEFORE deploying
+      - name: Fix permissions on EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST_DNS }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo chown -R $USER:$USER /var/www/html
+            sudo chmod -R 755 /var/www/html
+
+      # Upload entire repo to EC2
+      - name: Upload entire repository to EC2
+        uses: easingthemes/ssh-deploy@main
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.HOST_DNS }}
+          REMOTE_USER: ${{ secrets.USERNAME }}
+          SOURCE: "./"
+          TARGET: "/var/www/html"
+          ARGS: "-rlgoDzvc --delete"
+
+      # Restart nginx after deployment
+      - name: Restart Nginx on EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST_DNS }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo systemctl restart nginx

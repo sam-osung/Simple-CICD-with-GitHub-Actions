@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     name: Deploy Entire Repo to EC2
-    runs-on: ubuntu-latest
+    runs-on: ip-172-31-24-220
 
     steps:
       - name: Checkout repository
